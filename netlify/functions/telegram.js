@@ -40,12 +40,11 @@ exports.handler = async (event, context) => {
     return { statusCode: 400, headers, body: JSON.stringify({ ok: false, error: 'method_not_allowed' }) };
   }
 
-  // Enforce the Chat ID server-side so the client cannot change it
   if (method === 'sendMessage') {
     payload.chat_id = CHAT_ID;
   }
 
-  // Netlify has a 10-second limit. We set polling to 3 seconds to be safe.
+  // 3.5 seconds to strictly stay under Netlify's 10s function limit
   const timeoutMs = method === 'getUpdates' ? 3500 : 8000;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);

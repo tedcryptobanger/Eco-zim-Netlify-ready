@@ -36,10 +36,9 @@
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ method: method, payload: payload })
     }, ms || 10000).then(function(r){
-      // Check if the server returned HTML instead of JSON (usually a 404 or 500 error page)
       var contentType = r.headers.get("content-type");
       if (contentType && contentType.indexOf("application/json") === -1) {
-         throw new Error("Server returned HTML (Status " + r.status + "). The API route is likely missing.");
+         throw new Error("Server returned HTML (Status " + r.status + "). The API route is missing.");
       }
       return r.json().then(function(data){
         if(!r.ok) {
@@ -220,7 +219,7 @@
         pinsArr.forEach(function(p){ p.value = ''; });
         showDialog({
           title: 'System Error (Debug)',
-          message: res.error, // <--- THIS WILL SHOW THE EXACT SERVER ERROR
+          message: res.error,
           type: 'error',
           onOk: function(){ pinsArr[0].focus(); }
         });
