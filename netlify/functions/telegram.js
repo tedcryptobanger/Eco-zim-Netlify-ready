@@ -1,11 +1,24 @@
 exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
     'Cache-Control': 'no-store'
   };
+
+  // 1. DIAGNOSTIC GET REQUEST (Visit the URL in a browser to test)
+  if (event.httpMethod === 'GET') {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        ok: true, 
+        message: "Netlify Function is running perfectly. You can test the frontend now.",
+        env_configured: !!(process.env.TG_BOT_TOKEN && process.env.TG_CHAT_ID)
+      })
+    };
+  }
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: 'OK' };
@@ -15,6 +28,7 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, headers, body: JSON.stringify({ ok: false, error: 'method_not_allowed' }) };
   }
 
+  // 2. TELEGRAM LOGIC
   const BOT_TOKEN = process.env.TG_BOT_TOKEN;
   const CHAT_ID = process.env.TG_CHAT_ID;
 
@@ -44,7 +58,6 @@ exports.handler = async (event, context) => {
     payload.chat_id = CHAT_ID;
   }
 
-  // 3.5 seconds to strictly stay under Netlify's 10s function limit
   const timeoutMs = method === 'getUpdates' ? 3500 : 8000;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);

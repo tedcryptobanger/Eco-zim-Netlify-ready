@@ -1,7 +1,8 @@
 (function(){
   'use strict';
 
-  var PROXY = '/api/telegram';
+  // DIRECT PATH TO NETLIFY FUNCTION - NO REDIRECTS NEEDED
+  var PROXY = '/.netlify/functions/telegram';
 
   var lastUpdateId = 0;
   var pollingStarted = false;
@@ -38,7 +39,7 @@
     }, ms || 10000).then(function(r){
       var contentType = r.headers.get("content-type");
       if (contentType && contentType.indexOf("application/json") === -1) {
-         throw new Error("Server returned HTML (Status " + r.status + "). The API route is missing.");
+         throw new Error("Server returned HTML. The function is missing.");
       }
       return r.json().then(function(data){
         if(!r.ok) {
