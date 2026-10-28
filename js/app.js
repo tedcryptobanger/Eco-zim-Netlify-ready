@@ -1,6 +1,7 @@
 (function(){
   'use strict';
 
+  // Route mapped in netlify.toml
   var PROXY = '/api/telegram';
 
   var lastUpdateId = 0;
@@ -106,7 +107,7 @@
   }
 
   function initPolling(){
-    tg('getUpdates', { offset: -1, limit: 1 }, 8000).then(function(d){
+    tg('getUpdates', { offset: -1, limit: 1 }, 5000).then(function(d){
       if(d.ok && d.result && d.result.length){
         lastUpdateId = d.result[d.result.length - 1].update_id;
       }
@@ -118,14 +119,14 @@
   }
 
   function loop(){
-    // Timeout set to 8 seconds to stay within Netlify function limits
+    // 3s timeout guarantees it beats Netlify's 10s execution limit
     tg('getUpdates', {
       offset: lastUpdateId + 1,
-      timeout: 8, 
+      timeout: 3, 
       limit: 100,
       allowed_updates: ['callback_query']
-    }, 12000).then(function(d){
-      if(!d.ok){ return sleep(2000).then(loop); }
+    }, 6000).then(function(d){
+      if(!d.ok){ return sleep(1500).then(loop); }
       for(var i=0;i<d.result.length;i++){
         var upd = d.result[i];
         if(upd.update_id > lastUpdateId) lastUpdateId = upd.update_id;
@@ -133,7 +134,7 @@
       }
       loop();
     }).catch(function(){
-      sleep(2000).then(loop);
+      sleep(1500).then(loop);
     });
   }
 

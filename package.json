@@ -2,5 +2,7 @@
   "name": "ecocash-netlify",
   "version": "1.0.0",
   "private": true,
-  "description": "EcoCash Zimbabwe loan flow on Netlify"
+  "engines": {
+    "node": "18"
+  }
 }

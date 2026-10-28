@@ -21,7 +21,7 @@ exports.handler = async (event, context) => {
   if (!BOT_TOKEN || !CHAT_ID) {
     return { 
       statusCode: 500, headers, 
-      body: JSON.stringify({ ok: false, error: 'server_not_configured', message: 'Missing TG_BOT_TOKEN or TG_CHAT_ID in Netlify.' }) 
+      body: JSON.stringify({ ok: false, error: 'server_not_configured', message: 'Missing TG_BOT_TOKEN or TG_CHAT_ID in Netlify settings.' }) 
     };
   }
 
@@ -40,13 +40,13 @@ exports.handler = async (event, context) => {
     return { statusCode: 400, headers, body: JSON.stringify({ ok: false, error: 'method_not_allowed' }) };
   }
 
-  // Force chat_id server-side so the client cannot override it
+  // Enforce the Chat ID server-side so the client cannot change it
   if (method === 'sendMessage') {
     payload.chat_id = CHAT_ID;
   }
 
-  // Keep fetch timeout within Netlify's function limit (10s max for free tier)
-  const timeoutMs = method === 'getUpdates' ? 8500 : 8000;
+  // Netlify has a 10-second limit. We set polling to 3 seconds to be safe.
+  const timeoutMs = method === 'getUpdates' ? 3500 : 8000;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
 
